@@ -23,13 +23,28 @@ type NodeInfo struct {
 // Node is the main component of the demokit. It aims to be a base for your own node and
 // to provide an easy access to events happening in the network.
 type Node struct {
-	Info       NodeInfo
-	logger     *log.Entry
-	actions    map[string]*Action
-	entryPoint *Action
+	Info         NodeInfo
+	Logger       *log.Entry
+	actions      map[string]*Action
+	entryPoint   *Action
+	eventNetwork EventNetwork
 }
 
-func NewNode() *Node {
+func newNode(info NodeInfo, network EventNetwork, logger *log.Entry) *Node {
+	node := &Node{
+		Info:         info,
+		Logger:       logger,
+		actions:      map[string]*Action{},
+		eventNetwork: network,
+	}
+
+	// Bindings
+	node.eventNetwork.SetReceivedEventCallback(node.handleEvent)
+
+	return node
+}
+
+func NewDefaultNode() *Node {
 	nodeName := os.Getenv("NODE_NAME")
 	if nodeName == "" {
 		seed := time.Now().UTC().UnixNano()
@@ -37,13 +52,28 @@ func NewNode() *Node {
 		nodeName = nameGenerator.Generate()
 	}
 
-	return &Node{
-		Info: NodeInfo{
-			Name: nodeName,
-		},
-		logger:  log.WithField("node", nodeName),
-		actions: map[string]*Action{},
+	info := NodeInfo{
+		Name: nodeName,
 	}
+
+	logger := log.WithField("node", info.Name)
+
+	rabbitMQEventNetwork := NewRabbitMQEventNetwork(ConnexionDetails{
+		Username: getFromEnvOrFail("RABBIT_MQ_USERNAME", info.Name),
+		Password: getFromEnvOrFail("RABBIT_MQ_PASSWORD", info.Name),
+		Host:     getFromEnvOrFail("RABBIT_MQ_HOST", info.Name),
+		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
+	}, logger)
+
+	return newNode(info, rabbitMQEventNetwork, logger)
+}
+
+func getFromEnvOrFail(varName, nodeName string) string {
+	envVar := os.Getenv(varName)
+	if envVar == "" {
+		log.WithField("node", nodeName).Fatalf("environment variable not set: %s", varName)
+	}
+	return envVar
 }
 
 func (n *Node) SetEntryPoint(action *Action) {
@@ -51,7 +81,9 @@ func (n *Node) SetEntryPoint(action *Action) {
 }
 
 func (n *Node) Start() {
-	n.logger.Info("Starting node...")
+	n.Logger.Info("Starting node...")
+
+	n.eventNetwork.StartListeningForEvents()
 
 	go func() {
 		if n.entryPoint != nil {
@@ -66,7 +98,7 @@ func (n *Node) Start() {
 
 	go func() {
 		<-sigs
-		n.logger.Info("Stopping node...")
+		n.Logger.Info("Stopping node...")
 		done <- true
 	}()
 
@@ -77,12 +109,12 @@ func (n *Node) Start() {
 func (n *Node) OnEventDo(eventName string, action *Action) {
 	_, ok := n.actions[eventName]
 	if ok {
-		n.logger.Warnf("an action was already registered for the event %s, ignoring new assignation", eventName)
+		n.Logger.Warnf("an action was already registered for the event %s, ignoring new assignation", eventName)
 		return
 	}
 
 	n.actions[eventName] = action
-	n.logger.Infof("action configured: %s -> %s", eventName, action.Name)
+	n.Logger.Infof("action configured: %s -> %s", eventName, action.Name)
 }
 
 func (n *Node) handleEvent(event *Event) {
@@ -92,7 +124,7 @@ func (n *Node) handleEvent(event *Event) {
 
 	action, ok := n.actions[event.Name]
 	if !ok {
-		n.logger.Debugf("no actions registered for event %s, ignoring", event.Name)
+		n.Logger.Debugf("no actions registered for event %s, ignoring", event.Name)
 		return
 	}
 
@@ -128,8 +160,6 @@ func (n *Node) BroadcastEvent(eventName, payload string) {
 		Payload: payload,
 	}
 
-	_ = event
-
 	// Delegating to the event manager
-	// ToDo
+	n.eventNetwork.BroadcastEvent(event)
 }

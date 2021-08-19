@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
@@ -8,7 +9,10 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+	"net/http"
 )
+
+const StateServerAddr = ":8081"
 
 type NodeError string
 
@@ -162,4 +166,18 @@ func (n *Node) BroadcastEvent(eventName, payload string) {
 
 	// Delegating to the event manager
 	n.eventNetwork.BroadcastEvent(event)
+}
+
+func (n *Node) ServeState(state interface{}) {
+	http.HandleFunc("/state", func (w http.ResponseWriter, req *http.Request) {
+		jsonData, err := json.Marshal(state)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte("500 - An error occurred while getting the node's state."))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(jsonData)
+	})
+	go http.ListenAndServe(StateServerAddr, nil)
+	n.Logger.Info("Serving state on")
 }

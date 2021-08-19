@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"net/http"
 )
 
 const StateServerAddr = ":8081"
@@ -122,7 +122,13 @@ func (n *Node) OnEventDo(eventName string, action *Action) {
 }
 
 func (n *Node) handleEvent(event *Event) {
+	// Ignoring events sent by this node
 	if event.Emitter == n.Info.Name {
+		return
+	}
+
+	// Ignoring unicast events that are not for this node
+	if event.Receiver != "*" && event.Receiver != n.Info.Name {
 		return
 	}
 
@@ -163,13 +169,20 @@ func (n *Node) BroadcastEvent(eventName, payload string) {
 		Emitter: n.Info.Name,
 		Payload: payload,
 	}
-
-	// Delegating to the event manager
 	n.eventNetwork.BroadcastEvent(event)
 }
 
+func (n *Node) SendEventTo(receiver string, eventName, payload string) {
+	event := &Event{
+		Name:    eventName,
+		Emitter: n.Info.Name,
+		Payload: payload,
+	}
+	n.eventNetwork.SendEventTo(receiver, event)
+}
+
 func (n *Node) ServeState(state interface{}) {
-	http.HandleFunc("/state", func (w http.ResponseWriter, req *http.Request) {
+	http.HandleFunc("/state", func(w http.ResponseWriter, req *http.Request) {
 		jsonData, err := json.Marshal(state)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)

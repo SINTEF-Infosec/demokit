@@ -59,6 +59,10 @@ func NewRabbitMQEventNetwork(connDetails ConnexionDetails, mainLogger *log.Entry
 }
 
 func (r *RabbitMQEventNetwork) BroadcastEvent(event *Event) {
+	if event.Receiver == "" {
+		event.Receiver = "*"
+	}
+
 	data, err := json.Marshal(event)
 	if err != nil {
 		r.logger.Errorf("could not marshal event: %v", err)
@@ -79,7 +83,8 @@ func (r *RabbitMQEventNetwork) BroadcastEvent(event *Event) {
 }
 
 func (r *RabbitMQEventNetwork) SendEventTo(receiver string, event *Event) {
-	panic("implement me")
+	event.Receiver = receiver
+	r.BroadcastEvent(event)
 }
 
 func (r *RabbitMQEventNetwork) SetReceivedEventCallback(handler EventHandler) {
@@ -100,8 +105,8 @@ func (r *RabbitMQEventNetwork) StartListeningForEvents() {
 	}
 
 	err = r.rabbitMqChannel.QueueBind(
-		q.Name, // queue name
-		"",     // routing key
+		q.Name,         // queue name
+		"",             // routing key
 		EventsExchange, // exchange
 		false,
 		nil,

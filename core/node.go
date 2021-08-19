@@ -91,7 +91,7 @@ func (n *Node) Start() {
 
 	go func() {
 		if n.entryPoint != nil {
-			n.executeAction(n.entryPoint)
+			n.executeAction(n.entryPoint, nil)
 		}
 	}()
 
@@ -138,10 +138,10 @@ func (n *Node) handleEvent(event *Event) {
 		return
 	}
 
-	n.executeAction(action)
+	n.executeAction(action, event)
 }
 
-func (n *Node) executeAction(action *Action) {
+func (n *Node) executeAction(action *Action, event *Event) {
 	if action == nil {
 		return
 	}
@@ -152,14 +152,14 @@ func (n *Node) executeAction(action *Action) {
 
 	if action.DoCondition != nil {
 		if action.DoCondition() {
-			action.Do()
+			action.Do(event)
 		}
 	} else {
-		action.Do()
+		action.Do(event)
 	}
 
 	if action.Then != nil {
-		n.executeAction(action.Then)
+		n.executeAction(action.Then, event)
 	}
 }
 

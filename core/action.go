@@ -2,7 +2,7 @@ package core
 
 type Action struct {
 	Name        string
-	Do          func()
+	Do          EventHandler
 	DoCondition func() bool
 	Then        *Action
 }

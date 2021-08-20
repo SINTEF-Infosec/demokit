@@ -31,7 +31,7 @@ type Node struct {
 	Logger       *log.Entry
 	actions      map[string]*Action
 	entryPoint   *Action
-	eventNetwork EventNetwork
+	EventNetwork EventNetwork
 	Router       *gin.Engine
 }
 
@@ -60,12 +60,12 @@ func newNode(info NodeInfo, network EventNetwork, logger *log.Entry) *Node {
 		Info:         info,
 		Logger:       logger,
 		actions:      map[string]*Action{},
-		eventNetwork: network,
+		EventNetwork: network,
 		Router:       r,
 	}
 
 	// Bindings
-	node.eventNetwork.SetReceivedEventCallback(node.handleEvent)
+	node.EventNetwork.SetReceivedEventCallback(node.handleEvent)
 
 	return node
 }
@@ -110,7 +110,7 @@ func (n *Node) Start() {
 	n.Logger.Info("Starting node...")
 
 	n.StartAPIServer()
-	n.eventNetwork.StartListeningForEvents()
+	n.EventNetwork.StartListeningForEvents()
 
 	go func() {
 		if n.entryPoint != nil {
@@ -201,7 +201,7 @@ func (n *Node) BroadcastEvent(eventName, payload string) {
 		Emitter: n.Info.Name,
 		Payload: payload,
 	}
-	n.eventNetwork.BroadcastEvent(event)
+	n.EventNetwork.BroadcastEvent(event)
 }
 
 func (n *Node) SendEventTo(receiver string, eventName, payload string) {
@@ -210,7 +210,7 @@ func (n *Node) SendEventTo(receiver string, eventName, payload string) {
 		Emitter: n.Info.Name,
 		Payload: payload,
 	}
-	n.eventNetwork.SendEventTo(receiver, event)
+	n.EventNetwork.SendEventTo(receiver, event)
 }
 
 func (n *Node) ServeState(state interface{}, allowEdit bool) {

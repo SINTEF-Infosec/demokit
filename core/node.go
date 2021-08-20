@@ -1,8 +1,8 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
 	"net/http"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-const StateServerAddr = ":8081"
+const APIAddr = ":8081"
 
 type NodeError string
 
@@ -32,14 +32,36 @@ type Node struct {
 	actions      map[string]*Action
 	entryPoint   *Action
 	eventNetwork EventNetwork
+	Router       *gin.Engine
 }
 
 func newNode(info NodeInfo, network EventNetwork, logger *log.Entry) *Node {
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(func(c *gin.Context) {
+		startTime := time.Now()
+		c.Next()
+		endTime := time.Now()
+		latencyTime := endTime.Sub(startTime)
+		reqMethod := c.Request.Method
+		reqUri := c.Request.RequestURI
+		statusCode := c.Writer.Status()
+		clientIP := c.ClientIP()
+		logger.WithField("component", "router").WithFields(log.Fields{
+			"status_code": statusCode,
+			"latency":     latencyTime,
+			"client_ip":   clientIP,
+			"method":      reqMethod,
+			"uri":         reqUri,
+		}).Info()
+	})
+
 	node := &Node{
 		Info:         info,
 		Logger:       logger,
 		actions:      map[string]*Action{},
 		eventNetwork: network,
+		Router:       r,
 	}
 
 	// Bindings
@@ -87,6 +109,7 @@ func (n *Node) SetEntryPoint(action *Action) {
 func (n *Node) Start() {
 	n.Logger.Info("Starting node...")
 
+	n.StartAPIServer()
 	n.eventNetwork.StartListeningForEvents()
 
 	go func() {
@@ -107,6 +130,15 @@ func (n *Node) Start() {
 	}()
 
 	<-done
+}
+
+func (n *Node) StartAPIServer() {
+	n.Logger.Info("Starting API Server...")
+	go func() {
+		if err := n.Router.Run(APIAddr); err != nil {
+			n.Logger.Errorf("could not start API: %v", err)
+		}
+	}()
 }
 
 // OnEventDo is used to register an action to execute when a given event is received.
@@ -182,15 +214,8 @@ func (n *Node) SendEventTo(receiver string, eventName, payload string) {
 }
 
 func (n *Node) ServeState(state interface{}) {
-	http.HandleFunc("/state", func(w http.ResponseWriter, req *http.Request) {
-		jsonData, err := json.Marshal(state)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte("500 - An error occurred while getting the node's state."))
-		}
-		w.Header().Set("Content-Type", "application/json")
-		w.Write(jsonData)
+	n.Router.GET("/state", func(c *gin.Context) {
+		c.JSON(http.StatusOK, state)
 	})
-	go http.ListenAndServe(StateServerAddr, nil)
-	n.Logger.Info("Serving state on")
+	n.Logger.Infof("Node configured to serve its state on %s/state", APIAddr)
 }

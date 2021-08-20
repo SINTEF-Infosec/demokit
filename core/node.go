@@ -183,7 +183,7 @@ func (n *Node) executeAction(action *Action, event *Event) {
 	}
 
 	if action.DoCondition != nil {
-		if action.DoCondition() {
+		if action.DoCondition(event) {
 			action.Do(event)
 		}
 	} else {

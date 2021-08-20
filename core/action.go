@@ -1,8 +1,10 @@
 package core
 
+type ActionCondition func(event *Event) bool
+
 type Action struct {
 	Name        string
 	Do          EventHandler
-	DoCondition func() bool
+	DoCondition ActionCondition
 	Then        *Action
 }

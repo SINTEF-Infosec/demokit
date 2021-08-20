@@ -213,9 +213,22 @@ func (n *Node) SendEventTo(receiver string, eventName, payload string) {
 	n.eventNetwork.SendEventTo(receiver, event)
 }
 
-func (n *Node) ServeState(state interface{}) {
+func (n *Node) ServeState(state interface{}, allowEdit bool) {
 	n.Router.GET("/state", func(c *gin.Context) {
 		c.JSON(http.StatusOK, state)
 	})
+
+	if allowEdit {
+		n.Router.PUT("/state", func(c *gin.Context) {
+			if err := c.ShouldBind(state); err != nil {
+				n.Logger.Errorf("error while binding state: %v", err)
+				c.String(http.StatusBadRequest, "could not bind state")
+				c.Abort()
+				return
+			}
+			c.JSON(http.StatusOK, state)
+		})
+	}
+
 	n.Logger.Infof("Node configured to serve its state on %s/state", APIAddr)
 }

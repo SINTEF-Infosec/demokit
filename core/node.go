@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"github.com/SINTEF-Infosec/demokit/hardware"
 	"github.com/gin-gonic/gin"
 	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
@@ -33,9 +34,10 @@ type Node struct {
 	entryPoint   *Action
 	EventNetwork EventNetwork
 	Router       *gin.Engine
+	Hardware     hardware.Hal
 }
 
-func newNode(info NodeInfo, network EventNetwork, logger *log.Entry) *Node {
+func newNode(info NodeInfo, network EventNetwork, logger *log.Entry, hal hardware.Hal) *Node {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(func(c *gin.Context) {
@@ -62,6 +64,7 @@ func newNode(info NodeInfo, network EventNetwork, logger *log.Entry) *Node {
 		actions:      map[string]*Action{},
 		EventNetwork: network,
 		Router:       r,
+		Hardware:     hal,
 	}
 
 	// Bindings
@@ -91,7 +94,9 @@ func NewDefaultNode() *Node {
 		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
 	}, logger)
 
-	return newNode(info, rabbitMQEventNetwork, logger)
+	rpi := hardware.NewRaspberryPiWithSenseHat()
+
+	return newNode(info, rabbitMQEventNetwork, logger, rpi)
 }
 
 func getFromEnvOrFail(varName, nodeName string) string {

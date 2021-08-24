@@ -18,3 +18,11 @@ func (r *RaspberryPi) ReadTemperature() (float64, error) {
 func (r *RaspberryPi) ReadHumidity() (float64, error) {
 	return r.SenseHat.ReadHumidity()
 }
+
+func (r *RaspberryPi) LightOn() error {
+	return r.SenseHat.LightOn()
+}
+
+func (r *RaspberryPi) LightOff() error {
+	return r.SenseHat.LightOff()
+}

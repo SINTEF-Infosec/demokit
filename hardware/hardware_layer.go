@@ -3,6 +3,7 @@ package hardware
 // Hal (Hardware Abstraction Layer) provides access to hardware functionalities
 type Hal interface {
 	EnvironmentReader
+	Light
 }
 
 type EnvironmentReader interface {
@@ -16,4 +17,9 @@ type TemperatureReader interface {
 
 type HumidityReader interface {
 	ReadHumidity() (float64, error)
+}
+
+type Light interface {
+	LightOn() error
+	LightOff() error
 }

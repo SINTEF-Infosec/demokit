@@ -103,6 +103,7 @@ func (r *RabbitMQEventNetwork) StartListeningForEvents() {
 	if err != nil {
 		r.logger.Fatalf("failed to declare a queue: %v", err)
 	}
+	r.logger.Debugf("queue %s declared", q.Name)
 
 	err = r.rabbitMqChannel.QueueBind(
 		q.Name,         // queue name
@@ -114,6 +115,7 @@ func (r *RabbitMQEventNetwork) StartListeningForEvents() {
 	if err != nil {
 		r.logger.Fatalf("failed to bind a queue: %v", err)
 	}
+	r.logger.Debugf("Successfully bound to queue %s", q.Name)
 
 	msgs, err := r.rabbitMqChannel.Consume(
 		q.Name, // queue

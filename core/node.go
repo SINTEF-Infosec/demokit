@@ -134,6 +134,7 @@ func (n *Node) Start() {
 		done <- true
 	}()
 
+	n.Logger.Info("Node ready!")
 	<-done
 }
 

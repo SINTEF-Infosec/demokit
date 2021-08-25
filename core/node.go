@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"github.com/SINTEF-Infosec/demokit/hardware"
+	"github.com/SINTEF-Infosec/demokit/media"
 	"github.com/gin-gonic/gin"
 	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
@@ -28,16 +29,17 @@ type NodeInfo struct {
 // Node is the main component of the demokit. It aims to be a base for your own node and
 // to provide an easy access to events happening in the network.
 type Node struct {
-	Info         NodeInfo
-	Logger       *log.Entry
-	actions      map[string]*Action
-	entryPoint   *Action
-	EventNetwork EventNetwork
-	Router       *gin.Engine
-	Hardware     hardware.Hal
+	Info            NodeInfo
+	Logger          *log.Entry
+	actions         map[string]*Action
+	entryPoint      *Action
+	EventNetwork    EventNetwork
+	Router          *gin.Engine
+	Hardware        hardware.Hal
+	MediaController media.MediaController
 }
 
-func newNode(info NodeInfo, network EventNetwork, logger *log.Entry, hal hardware.Hal) *Node {
+func newNode(info NodeInfo, network EventNetwork, mediaController media.MediaController, logger *log.Entry, hal hardware.Hal) *Node {
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(func(c *gin.Context) {
@@ -59,12 +61,13 @@ func newNode(info NodeInfo, network EventNetwork, logger *log.Entry, hal hardwar
 	})
 
 	node := &Node{
-		Info:         info,
-		Logger:       logger,
-		actions:      map[string]*Action{},
-		EventNetwork: network,
-		Router:       r,
-		Hardware:     hal,
+		Info:            info,
+		Logger:          logger,
+		actions:         map[string]*Action{},
+		EventNetwork:    network,
+		Router:          r,
+		Hardware:        hal,
+		MediaController: mediaController,
 	}
 
 	// Bindings
@@ -96,7 +99,41 @@ func NewDefaultNode() *Node {
 
 	rpi := hardware.NewRaspberryPiWithSenseHat()
 
-	return newNode(info, rabbitMQEventNetwork, logger, rpi)
+	mediaController, err := media.NewVLCMediaController(logger)
+	if err != nil {
+		logger.Fatalf("could not start media controller: %v", err)
+	}
+
+	return newNode(info, rabbitMQEventNetwork, mediaController, logger, rpi).defaultConfig()
+}
+
+func (n *Node) defaultConfig() *Node {
+	// By default, we emit "internal" event when there is a media event
+	n.MediaController.SetOnMediaStartedCallback(func() {
+		n.handleEvent(&Event{
+			InternalMediaStarted,
+			fmt.Sprintf("%s.media-controller", n.Info.Name),
+			n.Info.Name,
+			"{}"})
+	})
+
+	n.MediaController.SetOnMediaPausedCallback(func() {
+		n.handleEvent(&Event{
+			InternalMediaPaused,
+			fmt.Sprintf("%s.media-controller", n.Info.Name),
+			n.Info.Name,
+			"{}"})
+	})
+
+	n.MediaController.SetOnMediaEndedCallback(func() {
+		n.handleEvent(&Event{
+			InternalMediaEnded,
+			fmt.Sprintf("%s.media-controller", n.Info.Name),
+			n.Info.Name,
+			"{}"})
+	})
+
+	return n
 }
 
 func getFromEnvOrFail(varName, nodeName string) string {

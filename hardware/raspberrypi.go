@@ -11,6 +11,10 @@ func NewRaspberryPiWithSenseHat() *RaspberryPi {
 	}
 }
 
+func (r *RaspberryPi) IsAvailable() bool {
+	return true
+}
+
 func (r *RaspberryPi) ReadTemperature() (float64, error) {
 	return r.SenseHat.ReadTemperature()
 }

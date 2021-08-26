@@ -5,13 +5,11 @@ import (
 	"github.com/SINTEF-Infosec/demokit/hardware"
 	"github.com/SINTEF-Infosec/demokit/media"
 	"github.com/gin-gonic/gin"
-	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 )
 
 const APIAddr = ":8081"
@@ -39,101 +37,46 @@ type Node struct {
 	MediaController media.MediaController
 }
 
-func newNode(info NodeInfo, network EventNetwork, mediaController media.MediaController, logger *log.Entry, hal hardware.Hal) *Node {
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(func(c *gin.Context) {
-		startTime := time.Now()
-		c.Next()
-		endTime := time.Now()
-		latencyTime := endTime.Sub(startTime)
-		reqMethod := c.Request.Method
-		reqUri := c.Request.RequestURI
-		statusCode := c.Writer.Status()
-		clientIP := c.ClientIP()
-		logger.WithField("component", "router").WithFields(log.Fields{
-			"status_code": statusCode,
-			"latency":     latencyTime,
-			"client_ip":   clientIP,
-			"method":      reqMethod,
-			"uri":         reqUri,
-		}).Info()
-	})
+func newNode(info NodeInfo,
+	logger *log.Entry,
+	network EventNetwork,
+	router *gin.Engine,
+	mediaController media.MediaController,
+	hal hardware.Hal) *Node {
 
 	node := &Node{
 		Info:            info,
 		Logger:          logger,
 		actions:         map[string]*Action{},
 		EventNetwork:    network,
-		Router:          r,
+		Router:          router,
 		Hardware:        hal,
 		MediaController: mediaController,
+	}
+
+	// Ensuring required components are set
+	if node.EventNetwork == nil {
+		node.Logger.Fatalf("the event network is a mandatory component, but is nil")
+	}
+
+	if node.Router == nil {
+		node.Logger.Fatalf("the router is a mandatory component, but is nil")
+	}
+
+	if node.Hardware == nil {
+		node.Logger.Info("hardware not configured, using virtual hardware layer")
+		node.Hardware = hardware.NewVirtualHardwareLayer()
+	}
+
+	if node.MediaController == nil {
+		node.Logger.Info("media controller not configured, using virtual media controller instead")
+		node.MediaController = media.NewVirtualMediaController()
 	}
 
 	// Bindings
 	node.EventNetwork.SetReceivedEventCallback(node.handleEvent)
 
 	return node
-}
-
-func NewDefaultNode() *Node {
-	nodeName := os.Getenv("NODE_NAME")
-	if nodeName == "" {
-		seed := time.Now().UTC().UnixNano()
-		nameGenerator := namegenerator.NewNameGenerator(seed)
-		nodeName = nameGenerator.Generate()
-	}
-
-	info := NodeInfo{
-		Name: nodeName,
-	}
-
-	logger := log.WithField("node", info.Name)
-
-	rabbitMQEventNetwork := NewRabbitMQEventNetwork(ConnexionDetails{
-		Username: getFromEnvOrFail("RABBIT_MQ_USERNAME", info.Name),
-		Password: getFromEnvOrFail("RABBIT_MQ_PASSWORD", info.Name),
-		Host:     getFromEnvOrFail("RABBIT_MQ_HOST", info.Name),
-		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
-	}, logger)
-
-	rpi := hardware.NewRaspberryPiWithSenseHat()
-
-	mediaController, err := media.NewVLCMediaController(logger)
-	if err != nil {
-		logger.Fatalf("could not start media controller: %v", err)
-	}
-
-	return newNode(info, rabbitMQEventNetwork, mediaController, logger, rpi).defaultConfig()
-}
-
-func (n *Node) defaultConfig() *Node {
-	// By default, we emit "internal" event when there is a media event
-	n.MediaController.SetOnMediaStartedCallback(func() {
-		n.handleEvent(&Event{
-			InternalMediaStarted,
-			fmt.Sprintf("%s.media-controller", n.Info.Name),
-			n.Info.Name,
-			"{}"})
-	})
-
-	n.MediaController.SetOnMediaPausedCallback(func() {
-		n.handleEvent(&Event{
-			InternalMediaPaused,
-			fmt.Sprintf("%s.media-controller", n.Info.Name),
-			n.Info.Name,
-			"{}"})
-	})
-
-	n.MediaController.SetOnMediaEndedCallback(func() {
-		n.handleEvent(&Event{
-			InternalMediaEnded,
-			fmt.Sprintf("%s.media-controller", n.Info.Name),
-			n.Info.Name,
-			"{}"})
-	})
-
-	return n
 }
 
 func getFromEnvOrFail(varName, nodeName string) string {

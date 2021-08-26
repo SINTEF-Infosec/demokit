@@ -4,6 +4,7 @@ package hardware
 type Hal interface {
 	EnvironmentReader
 	Light
+	IsAvailable() bool
 }
 
 type EnvironmentReader interface {

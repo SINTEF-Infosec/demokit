@@ -1,3 +1,5 @@
+// +build libvlc_available
+
 package media
 
 import (
@@ -71,6 +73,10 @@ func NewVLCMediaController(logger *log.Entry) (*VLCMediaController, error) {
 	}
 
 	return mediaController, nil
+}
+
+func (mc *VLCMediaController) IsAvailable() bool {
+	return true
 }
 
 func (mc *VLCMediaController) LoadMediaFromPath(path string) error {

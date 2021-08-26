@@ -3,6 +3,8 @@ package media
 type MediaEventCallback func()
 
 type MediaController interface {
+	IsAvailable() bool
+
 	LoadMediaFromPath(path string) error
 	LoadMediaFromURL(url string) error
 

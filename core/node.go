@@ -25,10 +25,25 @@ type NodeInfo struct {
 	Name string
 }
 
+type internalState struct {
+	IsReady bool
+}
+
+type NodeCapabilities struct {
+	MediaAvailable    bool `json:"media_available"`
+	HardwareAvailable bool `json:"hardware_available"`
+}
+
+type NodeStatus struct {
+	IsReady      bool             `json:"is_ready"`
+	Capabilities NodeCapabilities `json:"capabilities"`
+}
+
 // Node is the main component of the demokit. It aims to be a base for your own node and
 // to provide an easy access to events happening in the network.
 type Node struct {
 	Info            NodeInfo
+	State           internalState
 	Logger          *log.Entry
 	actions         map[string]*Action
 	entryPoint      *Action
@@ -46,7 +61,10 @@ func newNode(info NodeInfo,
 	hal hardware.Hal) *Node {
 
 	node := &Node{
-		Info:            info,
+		Info: info,
+		State: internalState{
+			IsReady: false,
+		},
 		Logger:          logger,
 		actions:         map[string]*Action{},
 		EventNetwork:    network,
@@ -77,6 +95,9 @@ func newNode(info NodeInfo,
 	// Bindings
 	node.EventNetwork.SetReceivedEventCallback(node.handleEvent)
 
+	// Router configuration
+	node.ServeStatus()
+
 	return node
 }
 
@@ -98,12 +119,21 @@ func (n *Node) Start() {
 	n.StartAPIServer()
 	n.EventNetwork.StartListeningForEvents()
 
+	n.Logger.Info("Node ready!")
+	n.State.IsReady = true
+
 	go func() {
 		if n.entryPoint != nil {
 			n.ExecuteAction(n.entryPoint, nil)
 		}
 	}()
 
+	// Wait for exit will block until a SIGINT
+	// or SIGTERM signal is received
+	n.WaitForExit()
+}
+
+func (n *Node) WaitForExit() {
 	sigs := make(chan os.Signal, 1)
 	done := make(chan bool, 1)
 
@@ -115,7 +145,6 @@ func (n *Node) Start() {
 		done <- true
 	}()
 
-	n.Logger.Info("Node ready!")
 	<-done
 }
 
@@ -204,6 +233,19 @@ func (n *Node) SendEventTo(receiver string, eventName, payload string) {
 		Payload: payload,
 	}
 	n.EventNetwork.SendEventTo(receiver, event)
+}
+
+func (n *Node) ServeStatus() {
+	n.Router.GET("/status", func(c *gin.Context) {
+		ns := NodeStatus{
+			IsReady: n.State.IsReady,
+			Capabilities: NodeCapabilities{
+				HardwareAvailable: n.Hardware.IsAvailable(),
+				MediaAvailable:    n.MediaController.IsAvailable(),
+			},
+		}
+		c.JSON(http.StatusOK, ns)
+	})
 }
 
 func (n *Node) ServeState(state interface{}, allowEdit bool) {

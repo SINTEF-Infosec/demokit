@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/adrg/libvlc-go/v3"
 	log "github.com/sirupsen/logrus"
+	"time"
 )
 
 type VLCMediaController struct {
@@ -81,18 +82,40 @@ func (mc *VLCMediaController) IsAvailable() bool {
 
 func (mc *VLCMediaController) LoadMediaFromPath(path string) error {
 	if mc.currentMedia != nil {
-		mc.logger.Debugf("releasing previous media", path)
+		mc.logger.Debugf("releasing previous media")
 		if err := mc.currentMedia.Release(); err != nil {
 			mc.logger.Errorf("could not release previous media: %v", err)
 		}
-		mc.logger.Debugf("previous media released", path)
+		mc.logger.Debugf("previous media released")
 	}
 
 	mc.logger.Debugf("loading media from file: %s", path)
-	media, err := mc.player.LoadMediaFromPath(path)
-	if err != nil {
-		mc.logger.Fatalf("could not load media from file: %v", err)
-		return err
+
+	// 2 seconds timeout
+	c1 := make(chan bool, 1)
+	c2 := make(chan bool, 1)
+
+	go func() {
+		time.Sleep(2 * time.Second)
+		c1 <- true
+	}()
+
+	var media *vlc.Media
+	go func() {
+		var err error
+		media, err = mc.player.LoadMediaFromPath(path)
+		if err != nil {
+			mc.logger.Fatalf("could not load media from file: %v", err)
+		}
+		c2 <- true
+	}()
+
+	select {
+		case <-c1:
+			mc.logger.Errorf("LoadMediaFromPath timed out...")
+			return fmt.Errorf("LoadMediaFromPath timed out")
+		case <-c2:
+			mc.logger.Debugf("LoadMediaFromPath succeeded")
 	}
 
 	mc.currentMedia = media

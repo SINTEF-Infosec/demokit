@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 const APIAddr = ":8081"
@@ -164,8 +165,14 @@ func (n *Node) ExecuteAction(action *Action, event *Event) {
 		return
 	}
 
+	n.Logger.Debugf("Start executing action: %s", action.Name)
 	if action.Do == nil {
 		return
+	}
+
+	if action.DoDelay > 0 {
+		n.Logger.Infof("Sleeping %d ms before pursuing", action.DoDelay)
+		time.Sleep(time.Duration(action.DoDelay) * time.Millisecond)
 	}
 
 	if action.DoCondition != nil {

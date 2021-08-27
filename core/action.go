@@ -6,5 +6,6 @@ type Action struct {
 	Name        string
 	Do          EventHandler
 	DoCondition ActionCondition
+	DoDelay		int
 	Then        *Action
 }

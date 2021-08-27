@@ -51,21 +51,21 @@ func NewVLCMediaController(logger *log.Entry) (*VLCMediaController, error) {
 
 	// Registering default eventCallback against the event manager
 	_, err = manager.Attach(vlc.MediaPlayerPlaying,
-		func(event vlc.Event, data interface{}) { mediaController.onMediaStartedCallback() }, nil)
+		func(event vlc.Event, data interface{}) { go mediaController.onMediaStartedCallback() }, nil)
 	if err != nil {
 		mediaControllerLogger.Errorf("could not attach event: %v", err)
 		return nil, err
 	}
 
 	_, err = manager.Attach(vlc.MediaPlayerPaused,
-		func(event vlc.Event, data interface{}) { mediaController.onMediaPausedCallback() }, nil)
+		func(event vlc.Event, data interface{}) { go mediaController.onMediaPausedCallback() }, nil)
 	if err != nil {
 		mediaControllerLogger.Errorf("could not attach event: %v", err)
 		return nil, err
 	}
 
 	_, err = manager.Attach(vlc.MediaPlayerEndReached,
-		func(event vlc.Event, data interface{}) { mediaController.onMediaEndedCallback() }, nil)
+		func(event vlc.Event, data interface{}) { go mediaController.onMediaEndedCallback() }, nil)
 	if err != nil {
 		mediaControllerLogger.Errorf("could not attach event: %v", err)
 		return nil, err

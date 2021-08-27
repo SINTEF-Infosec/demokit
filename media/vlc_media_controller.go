@@ -81,11 +81,14 @@ func (mc *VLCMediaController) IsAvailable() bool {
 
 func (mc *VLCMediaController) LoadMediaFromPath(path string) error {
 	if mc.currentMedia != nil {
+		mc.logger.Debugf("releasing previous media", path)
 		if err := mc.currentMedia.Release(); err != nil {
 			mc.logger.Errorf("could not release previous media: %v", err)
 		}
+		mc.logger.Debugf("previous media released", path)
 	}
 
+	mc.logger.Debugf("loading media from file: %s", path)
 	media, err := mc.player.LoadMediaFromPath(path)
 	if err != nil {
 		mc.logger.Fatalf("could not load media from file: %v", err)
@@ -93,10 +96,12 @@ func (mc *VLCMediaController) LoadMediaFromPath(path string) error {
 	}
 
 	mc.currentMedia = media
+	mc.logger.Debugf("media loaded successfully", path)
 	return nil
 }
 
 func (mc *VLCMediaController) LoadMediaFromURL(url string) error {
+	mc.logger.Debugf("loading media from url: %s", url)
 	if mc.currentMedia != nil {
 		if err := mc.currentMedia.Release(); err != nil {
 			mc.logger.Errorf("could not release previous media: %v", err)

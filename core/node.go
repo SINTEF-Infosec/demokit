@@ -173,10 +173,13 @@ func (n *Node) ExecuteAction(action *Action, event *Event) {
 			action.Do(event)
 		}
 	} else {
+		n.Logger.Debugf("Executing action: %s", action.Name)
 		action.Do(event)
+		n.Logger.Debugf("Action executed")
 	}
 
 	if action.Then != nil {
+		n.Logger.Debugf("Execution next action: %s", action.Then.Name)
 		n.ExecuteAction(action.Then, event)
 	}
 }

@@ -21,7 +21,7 @@ type VLCMediaController struct {
 func NewVLCMediaController(logger *log.Entry) (*VLCMediaController, error) {
 	mediaControllerLogger := logger.WithField("component", "media-controller")
 
-	if err := vlc.Init("--fullscreen", "--quiet"); err != nil {
+	if err := vlc.Init("--fullscreen", "-vvv"); err != nil {
 		mediaControllerLogger.Errorf("could not init VLC: %v", err)
 		return nil, err
 	}
@@ -79,7 +79,6 @@ func (mc *VLCMediaController) IsAvailable() bool {
 }
 
 func (mc *VLCMediaController) LoadMediaFromPath(path string) error {
-	mc.logger.Debugf("loading media from path: %s", path)
 	if err := mc.releaseCurrentMedia(); err != nil {
 		mc.logger.Errorf("could not release previous media: %v", err)
 	}

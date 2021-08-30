@@ -35,14 +35,20 @@ type NodeCapabilities struct {
 }
 
 type NodeStatus struct {
-	IsReady      bool             `json:"is_ready"`
-	Capabilities NodeCapabilities `json:"capabilities"`
+	IsReady           bool                `json:"is_ready"`
+	Capabilities      NodeCapabilities    `json:"capabilities"`
+	RegisteredActions map[string][]string `json:"registered_actions"`
+}
+
+type NodeConfig struct {
+	ExposeActions bool
 }
 
 // Node is the main component of the demokit. It aims to be a base for your own node and
 // to provide an easy access to events happening in the network.
 type Node struct {
 	Info            NodeInfo
+	Config          NodeConfig
 	State           internalState
 	Logger          *log.Entry
 	actions         map[string]*Action
@@ -53,7 +59,8 @@ type Node struct {
 	MediaController media.MediaController
 }
 
-func newNode(info NodeInfo,
+func NewNode(info NodeInfo,
+	config NodeConfig,
 	logger *log.Entry,
 	network EventNetwork,
 	router *gin.Engine,
@@ -61,7 +68,8 @@ func newNode(info NodeInfo,
 	hal hardware.Hal) *Node {
 
 	node := &Node{
-		Info: info,
+		Info:   info,
+		Config: config,
 		State: internalState{
 			IsReady: false,
 		},
@@ -93,9 +101,11 @@ func newNode(info NodeInfo,
 	}
 
 	// Bindings
+	node.Logger.Debug("Setting up event callback")
 	node.EventNetwork.SetReceivedEventCallback(node.handleEvent)
 
 	// Router configuration
+	node.Logger.Debug("Enabling status")
 	node.ServeStatus()
 
 	return node
@@ -237,15 +247,36 @@ func (n *Node) SendEventTo(receiver string, eventName, payload string) {
 
 func (n *Node) ServeStatus() {
 	n.Router.GET("/status", func(c *gin.Context) {
+		var actions map[string][]string
+		if n.Config.ExposeActions {
+			actions = n.getRegisteredActions()
+		}
 		ns := NodeStatus{
 			IsReady: n.State.IsReady,
 			Capabilities: NodeCapabilities{
 				HardwareAvailable: n.Hardware.IsAvailable(),
 				MediaAvailable:    n.MediaController.IsAvailable(),
 			},
+			RegisteredActions: actions,
 		}
 		c.JSON(http.StatusOK, ns)
 	})
+}
+
+func (n *Node) getRegisteredActions() map[string][]string {
+	regActions := make(map[string][]string, len(n.actions))
+	for event, action := range n.actions {
+		regActions[event] = getActionsList(action, []string{})
+	}
+	return regActions
+}
+
+func getActionsList(action *Action, acc []string) []string {
+	if action != nil {
+		acc = append(acc, action.Name)
+		getActionsList(action.Then, acc)
+	}
+	return acc
 }
 
 func (n *Node) ServeState(state interface{}, allowEdit bool) {

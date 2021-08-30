@@ -32,5 +32,11 @@ func NewDefaultNode() *Node {
 
 	router := NewNodeRouter(logger)
 
-	return newNode(info, logger, rabbitMQEventNetwork, router, nil, nil)
+	return NewNode(info, DefaultNodeConfig(), logger, rabbitMQEventNetwork, router, nil, nil)
+}
+
+func DefaultNodeConfig() NodeConfig {
+	return NodeConfig{
+		ExposeActions: true,
+	}
 }

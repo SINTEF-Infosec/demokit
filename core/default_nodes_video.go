@@ -42,7 +42,7 @@ func NewDefaultNodeWithVideo() *Node {
 	if err != nil {
 		log.Fatalf("could not create media controller: %v", err)
 	}
-	n := newNode(info, logger, rabbitMQEventNetwork, router, mediaController, nil)
+	n := NewNode(info, DefaultNodeConfig(), logger, rabbitMQEventNetwork, router, mediaController, nil)
 
 	if n.MediaController != nil {
 		// By default, we emit "internal" event when there is a media event

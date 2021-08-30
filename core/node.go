@@ -49,21 +49,23 @@ type NodeConfig struct {
 // Node is the main component of the demokit. It aims to be a base for your own node and
 // to provide an easy access to events happening in the network.
 type Node struct {
-	Info            NodeInfo
-	Config          NodeConfig
-	State           internalState
-	Logger          *log.Entry
-	actions         map[string]*Action
-	entryPoint      *Action
-	EventNetwork    EventNetwork
-	Router          *gin.Engine
-	Hardware        hardware.Hal
-	MediaController media.MediaController
+	Info               NodeInfo
+	Config             NodeConfig
+	State              internalState
+	Logger             *log.Entry
+	actions            map[string]*Action
+	entryPoint         *Action
+	RegistrationServer *RegistrationServer
+	EventNetwork       EventNetwork
+	Router             *gin.Engine
+	Hardware           hardware.Hal
+	MediaController    media.MediaController
 }
 
 func NewNode(info NodeInfo,
 	config NodeConfig,
 	logger *log.Entry,
+	rs *RegistrationServer,
 	network EventNetwork,
 	router *gin.Engine,
 	mediaController media.MediaController,
@@ -75,12 +77,13 @@ func NewNode(info NodeInfo,
 		State: internalState{
 			IsReady: false,
 		},
-		Logger:          logger,
-		actions:         map[string]*Action{},
-		EventNetwork:    network,
-		Router:          router,
-		Hardware:        hal,
-		MediaController: mediaController,
+		Logger:             logger,
+		actions:            map[string]*Action{},
+		RegistrationServer: rs,
+		EventNetwork:       network,
+		Router:             router,
+		Hardware:           hal,
+		MediaController:    mediaController,
 	}
 
 	// Ensuring required components are set
@@ -136,6 +139,8 @@ func (n *Node) Start() {
 
 	n.StartAPIServer()
 	n.EventNetwork.StartListeningForEvents()
+
+	n.Register()
 
 	n.Logger.Info("Node ready!")
 	n.State.IsReady = true
@@ -316,4 +321,12 @@ func (n *Node) RetrieveLocalIp() net.IP {
 	defer conn.Close()
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP
+}
+
+func (n *Node) Register() {
+	if err := n.RegistrationServer.RegisterNode(n); err != nil {
+		n.Logger.Errorf("could not register node: %v", err)
+		return
+	}
+	log.Info("Successfully registered node against registration server")
 }

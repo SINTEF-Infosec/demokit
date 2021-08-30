@@ -35,7 +35,7 @@ func NewDefaultRaspberryPiNode() *Node {
 	router := NewNodeRouter(logger)
 	rpi := hardware.NewRaspberryPiWithSenseHat()
 
-	n := NewNode(info, DefaultNodeConfig(), logger, rabbitMQEventNetwork, router, nil, rpi)
+	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, router, nil, rpi)
 
 	if n.MediaController != nil {
 		// By default, we emit "internal" event when there is a media event

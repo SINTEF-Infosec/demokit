@@ -32,7 +32,7 @@ func NewDefaultNode() *Node {
 
 	router := NewNodeRouter(logger)
 
-	return NewNode(info, DefaultNodeConfig(), logger, rabbitMQEventNetwork, router, nil, nil)
+	return NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, router, nil, nil)
 }
 
 func DefaultNodeConfig() NodeConfig {

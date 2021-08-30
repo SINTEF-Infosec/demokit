@@ -6,6 +6,7 @@ import (
 	"github.com/SINTEF-Infosec/demokit/media"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -22,7 +23,8 @@ func (ne *NodeError) Error() string {
 }
 
 type NodeInfo struct {
-	Name string
+	Name    string
+	LocalIp string
 }
 
 type internalState struct {
@@ -98,6 +100,12 @@ func NewNode(info NodeInfo,
 	if node.MediaController == nil {
 		node.Logger.Info("media controller not configured, using virtual media controller instead")
 		node.MediaController = media.NewVirtualMediaController()
+	}
+
+	// Retrieving local info
+	ip := node.RetrieveLocalIp()
+	if ip != nil {
+		node.Info.LocalIp = ip.String()
 	}
 
 	// Bindings
@@ -297,4 +305,15 @@ func (n *Node) ServeState(state interface{}, allowEdit bool) {
 	}
 
 	n.Logger.Infof("Node configured to serve its state on %s/state", APIAddr)
+}
+
+func (n *Node) RetrieveLocalIp() net.IP {
+	conn, err := net.Dial("udp", "8.8.8.8:53")
+	if err != nil {
+		n.Logger.Errorf("could not retrieve local IP: %v", err)
+		return nil
+	}
+	defer conn.Close()
+	localAddr := conn.LocalAddr().(*net.UDPAddr)
+	return localAddr.IP
 }

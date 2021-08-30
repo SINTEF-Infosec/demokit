@@ -3,6 +3,7 @@ module github.com/SINTEF-Infosec/demokit
 go 1.16
 
 require (
+	github.com/DataDog/go-python3 v0.0.0-20210805105248-03d93fb21b67
 	github.com/adrg/libvlc-go/v3 v3.1.4
 	github.com/gin-gonic/gin v1.7.4
 	github.com/goombaio/namegenerator v0.0.0-20181006234301-989e774b106e

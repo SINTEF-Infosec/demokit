@@ -1,3 +1,5 @@
+// +build interpreted_hardware
+
 package hardware
 
 import (
@@ -19,8 +21,8 @@ const (
 type SenseHat struct {
 }
 
-func NewSenseHat() *SenseHat {
-	return &SenseHat{}
+func NewSenseHat() (*SenseHat, error) {
+	return &SenseHat{}, nil
 }
 
 func (s *SenseHat) ReadHumidity() (float64, error) {

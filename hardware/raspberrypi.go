@@ -1,13 +1,19 @@
 package hardware
 
+import log "github.com/sirupsen/logrus"
+
 // WIP
 type RaspberryPi struct {
 	SenseHat *SenseHat
 }
 
 func NewRaspberryPiWithSenseHat() *RaspberryPi {
+	senseHat, err := NewSenseHat()
+	if err != nil {
+		log.Fatalf("Could not instantiate new sense hat: %v", err)
+	}
 	return &RaspberryPi{
-		SenseHat: NewSenseHat(),
+		SenseHat: senseHat,
 	}
 }
 

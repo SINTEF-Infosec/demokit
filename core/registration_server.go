@@ -14,7 +14,7 @@ type RegistrationServer struct {
 
 func NewDefaultRegistrationServer() *RegistrationServer {
 	return &RegistrationServer{
-		Addr: "192.168.0.101:4000",
+		Addr: "192.168.0.102:4000",
 	}
 }
 

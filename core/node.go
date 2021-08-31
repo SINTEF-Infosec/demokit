@@ -287,7 +287,7 @@ func (n *Node) getRegisteredActions() map[string][]string {
 func getActionsList(action *Action, acc []string) []string {
 	if action != nil {
 		acc = append(acc, action.Name)
-		getActionsList(action.Then, acc)
+		acc = getActionsList(action.Then, acc)
 	}
 	return acc
 }

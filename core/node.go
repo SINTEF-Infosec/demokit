@@ -324,6 +324,10 @@ func (n *Node) RetrieveLocalIp() net.IP {
 }
 
 func (n *Node) Register() {
+	if n.RegistrationServer == nil {
+		n.Logger.Errorf("no registration server configured")
+		return
+	}
 	if err := n.RegistrationServer.RegisterNode(n); err != nil {
 		n.Logger.Errorf("could not register node: %v", err)
 		return

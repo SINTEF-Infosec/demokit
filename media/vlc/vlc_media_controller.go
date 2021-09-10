@@ -1,9 +1,10 @@
 // +build libvlc_available
 
-package media
+package vlc
 
 import (
 	"fmt"
+	"github.com/SINTEF-Infosec/demokit/media"
 	"github.com/adrg/libvlc-go/v3"
 	log "github.com/sirupsen/logrus"
 )
@@ -13,13 +14,17 @@ type VLCMediaController struct {
 	player       *vlc.Player
 	eventManager *vlc.EventManager
 
-	onMediaStartedCallback MediaEventCallback
-	onMediaPausedCallback  MediaEventCallback
-	onMediaEndedCallback   MediaEventCallback
+	onMediaStartedCallback media.MediaEventCallback
+	onMediaPausedCallback  media.MediaEventCallback
+	onMediaEndedCallback   media.MediaEventCallback
 }
 
-func NewVLCMediaController(logger *log.Entry) (*VLCMediaController, error) {
-	mediaControllerLogger := logger.WithField("component", "media-controller")
+func (mc *VLCMediaController) SetLogger(logger *log.Entry) {
+	mc.logger = logger
+}
+
+func NewVLCMediaController() (*VLCMediaController, error) {
+	mediaControllerLogger := log.WithField("node", "na-media-controller-setup")
 
 	if err := vlc.Init("--fullscreen", "--quiet"); err != nil {
 		mediaControllerLogger.Errorf("could not init VLC: %v", err)
@@ -139,15 +144,15 @@ func (mc *VLCMediaController) Stop() error {
 	return fmt.Errorf("no media loaded")
 }
 
-func (mc *VLCMediaController) SetOnMediaStartedCallback(cb MediaEventCallback) {
+func (mc *VLCMediaController) SetOnMediaStartedCallback(cb media.MediaEventCallback) {
 	mc.onMediaStartedCallback = cb
 }
 
-func (mc *VLCMediaController) SetOnMediaPausedCallback(cb MediaEventCallback) {
+func (mc *VLCMediaController) SetOnMediaPausedCallback(cb media.MediaEventCallback) {
 	mc.onMediaPausedCallback = cb
 }
 
-func (mc *VLCMediaController) SetOnMediaEndedCallback(cb MediaEventCallback) {
+func (mc *VLCMediaController) SetOnMediaEndedCallback(cb media.MediaEventCallback) {
 	mc.onMediaEndedCallback = cb
 }
 

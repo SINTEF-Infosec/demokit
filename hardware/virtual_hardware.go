@@ -1,8 +1,8 @@
 package hardware
 
-import "fmt"
-
-const UnavailableHardware = "hardware unavailable, this is a virtual hardware layer"
+import (
+	log "github.com/sirupsen/logrus"
+)
 
 type VirtualHardwareLayer struct{}
 
@@ -14,18 +14,8 @@ func (v VirtualHardwareLayer) IsAvailable() bool {
 	return false
 }
 
-func (v VirtualHardwareLayer) ReadTemperature() (float64, error) {
-	return 0.0, fmt.Errorf(UnavailableHardware)
-}
+func (v VirtualHardwareLayer) Init() {}
 
-func (v VirtualHardwareLayer) ReadHumidity() (float64, error) {
-	return 0.0, fmt.Errorf(UnavailableHardware)
-}
+func (v VirtualHardwareLayer) SetEventHandler(_ func(interface{})) {}
 
-func (v VirtualHardwareLayer) LightOn() error {
-	return fmt.Errorf(UnavailableHardware)
-}
-
-func (v VirtualHardwareLayer) LightOff() error {
-	return fmt.Errorf(UnavailableHardware)
-}
+func (v VirtualHardwareLayer) SetLogger(_ *log.Entry) {}

@@ -5,6 +5,7 @@ import (
 	"github.com/SINTEF-Infosec/demokit/hardware"
 	"github.com/SINTEF-Infosec/demokit/media"
 	"github.com/gin-gonic/gin"
+	"github.com/goombaio/namegenerator"
 	log "github.com/sirupsen/logrus"
 	"net"
 	"net/http"
@@ -67,7 +68,6 @@ func NewNode(info NodeInfo,
 	logger *log.Entry,
 	rs *RegistrationServer,
 	network EventNetwork,
-	router *gin.Engine,
 	mediaController media.MediaController,
 	hal hardware.Hal) *Node {
 
@@ -81,18 +81,29 @@ func NewNode(info NodeInfo,
 		actions:            map[string]*Action{},
 		RegistrationServer: rs,
 		EventNetwork:       network,
-		Router:             router,
+		Router:             nil,
 		Hardware:           hal,
 		MediaController:    mediaController,
 	}
 
+	// If no node name is set, we check the env variables
+	// If not set, we go for  random node name
+	if node.Info.Name == "" {
+		nodeName := os.Getenv("NODE_NAME")
+		if nodeName == "" {
+			seed := time.Now().UTC().UnixNano()
+			nameGenerator := namegenerator.NewNameGenerator(seed)
+			nodeName = nameGenerator.Generate()
+		}
+		node.Info.Name = nodeName
+	}
+
+	// Adding logger "node" field
+	node.Logger = node.Logger.WithField("node", node.Info.Name)
+
 	// Ensuring required components are set
 	if node.EventNetwork == nil {
 		node.Logger.Fatalf("the event network is a mandatory component, but is nil")
-	}
-
-	if node.Router == nil {
-		node.Logger.Fatalf("the router is a mandatory component, but is nil")
 	}
 
 	if node.Hardware == nil {
@@ -104,6 +115,13 @@ func NewNode(info NodeInfo,
 		node.Logger.Info("media controller not configured, using virtual media controller instead")
 		node.MediaController = media.NewVirtualMediaController()
 	}
+
+	node.Router = NewNodeRouter(node.Logger)
+
+	// Setting logger for all the components
+	node.EventNetwork.SetLogger(node.Logger)
+	node.MediaController.SetLogger(node.Logger)
+	node.Hardware.SetLogger(node.Logger)
 
 	// Retrieving local info
 	ip := node.RetrieveLocalIp()
@@ -136,6 +154,7 @@ func (n *Node) SetEntryPoint(action *Action) {
 
 func (n *Node) Start() {
 	n.Logger.Info("Starting node...")
+	n.Hardware.Init()
 
 	n.StartAPIServer()
 	n.EventNetwork.StartListeningForEvents()
@@ -203,7 +222,6 @@ func (n *Node) handleEvent(event *Event) {
 		return
 	}
 
-	n.Logger.Debugf("handling event %s", event.Name)
 	action, ok := n.actions[event.Name]
 	if !ok {
 		n.Logger.Debugf("no actions registered for event %s, ignoring", event.Name)

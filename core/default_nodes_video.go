@@ -4,11 +4,14 @@ package core
 
 import (
 	"fmt"
-	"github.com/SINTEF-Infosec/demokit/media"
-	"github.com/goombaio/namegenerator"
+	"github.com/SINTEF-Infosec/demokit/media/vlc"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
+)
+
+const (
+	InternalMediaStarted = "I_MEDIA_STARTED"
+	InternalMediaPaused  = "I_MEDIA_PAUSED"
+	InternalMediaEnded   = "I_MEDIA_ENDED"
 )
 
 // NewDefaultNodeWithVideo returns a Node with a default configuration for a Node having video capabilities.
@@ -16,33 +19,21 @@ import (
 //
 // This Node is only available if libvlc is available on the system it is build on (libvlc_available tag when building).
 func NewDefaultNodeWithVideo() *Node {
-	nodeName := os.Getenv("NODE_NAME")
-	if nodeName == "" {
-		seed := time.Now().UTC().UnixNano()
-		nameGenerator := namegenerator.NewNameGenerator(seed)
-		nodeName = nameGenerator.Generate()
-	}
-
-	info := NodeInfo{
-		Name: nodeName,
-	}
-
-	logger := log.WithField("node", info.Name)
+	info := NodeInfo{} // Will default to a NODE_NAME or to a random name
+	logger := log.NewEntry(log.New())
 
 	rabbitMQEventNetwork := NewRabbitMQEventNetwork(ConnexionDetails{
 		Username: getFromEnvOrFail("RABBIT_MQ_USERNAME", info.Name),
 		Password: getFromEnvOrFail("RABBIT_MQ_PASSWORD", info.Name),
 		Host:     getFromEnvOrFail("RABBIT_MQ_HOST", info.Name),
 		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
-	}, logger)
+	})
 
-	router := NewNodeRouter(logger)
-
-	mediaController, err := media.NewVLCMediaController(logger)
+	mediaController, err := vlc.NewVLCMediaController()
 	if err != nil {
 		log.Fatalf("could not create media controller: %v", err)
 	}
-	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, router, mediaController, nil)
+	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, mediaController, nil)
 
 	if n.MediaController != nil {
 		// By default, we emit "internal" event when there is a media event

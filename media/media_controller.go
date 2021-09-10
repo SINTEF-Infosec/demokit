@@ -1,9 +1,12 @@
 package media
 
+import log "github.com/sirupsen/logrus"
+
 type MediaEventCallback func()
 
 type MediaController interface {
 	IsAvailable() bool
+	SetLogger(entry *log.Entry)
 
 	LoadMediaFromPath(path string) error
 	LoadMediaFromURL(url string) error

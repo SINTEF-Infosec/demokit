@@ -1,6 +1,9 @@
 package media
 
-import "fmt"
+import (
+	"fmt"
+	log "github.com/sirupsen/logrus"
+)
 
 const UnavailableController = "media controller unavailable, this is a virtual controller"
 
@@ -13,6 +16,8 @@ func NewVirtualMediaController() *VirtualMediaController {
 func (v VirtualMediaController) IsAvailable() bool {
 	return false
 }
+
+func (v VirtualMediaController) SetLogger(_ *log.Entry) {}
 
 func (v VirtualMediaController) LoadMediaFromPath(path string) error {
 	return fmt.Errorf(UnavailableController)

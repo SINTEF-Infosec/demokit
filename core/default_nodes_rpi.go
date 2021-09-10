@@ -2,68 +2,43 @@ package core
 
 import (
 	"fmt"
-	"github.com/SINTEF-Infosec/demokit/hardware"
-	"github.com/goombaio/namegenerator"
+	"github.com/SINTEF-Infosec/demokit/hardware/raspberrypi"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"time"
+	"strings"
 )
 
 // NewDefaultRaspberryPiNode returns a Node with a default configuration for a RaspberryPi Node.
 // In addition to the mandatory components of a Node, the Hardware Layer is available.
 func NewDefaultRaspberryPiNode() *Node {
-	nodeName := os.Getenv("NODE_NAME")
-	if nodeName == "" {
-		seed := time.Now().UTC().UnixNano()
-		nameGenerator := namegenerator.NewNameGenerator(seed)
-		nodeName = nameGenerator.Generate()
-	}
-
-	info := NodeInfo{
-		Name: nodeName,
-	}
-
-	logger := log.WithField("node", info.Name)
+	info := NodeInfo{} // Will default to a NODE_NAME or to a random name
+	logger := log.NewEntry(log.New())
 
 	rabbitMQEventNetwork := NewRabbitMQEventNetwork(ConnexionDetails{
 		Username: getFromEnvOrFail("RABBIT_MQ_USERNAME", info.Name),
 		Password: getFromEnvOrFail("RABBIT_MQ_PASSWORD", info.Name),
 		Host:     getFromEnvOrFail("RABBIT_MQ_HOST", info.Name),
 		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
-	}, logger)
+	})
 
-	router := NewNodeRouter(logger)
-	rpi := hardware.NewRaspberryPiWithSenseHat()
+	rpi := raspberrypi.NewRaspberryPiWithSenseHat()
 
-	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, router, nil, rpi)
+	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, nil, rpi)
 
-	if n.MediaController != nil {
-		// By default, we emit "internal" event when there is a media event
-		n.MediaController.SetOnMediaStartedCallback(func() {
-			n.handleEvent(&Event{
-				InternalMediaStarted,
-				fmt.Sprintf("%s.media-controller", n.Info.Name),
-				n.Info.Name,
-				"{}"})
-		})
-
-		n.MediaController.SetOnMediaPausedCallback(func() {
-			n.handleEvent(&Event{
-				InternalMediaPaused,
-				fmt.Sprintf("%s.media-controller", n.Info.Name),
-				n.Info.Name,
-				"{}"})
-		})
-
-		n.MediaController.SetOnMediaEndedCallback(func() {
-			n.handleEvent(&Event{
-				InternalMediaEnded,
-				fmt.Sprintf("%s.media-controller", n.Info.Name),
-				n.Info.Name,
-				"{}"})
-		})
+	hardwareEventHandler := func(e interface{}) {
+		inputEvent, ok := e.(raspberrypi.InputEvent)
+		if !ok {
+			n.Logger.Errorf("could not get event")
+		}
+		event := &Event{
+			Name:     fmt.Sprintf("I_%s_%s", strings.ToUpper(inputEvent.Direction), strings.ToUpper(inputEvent.Action)),
+			Emitter:  fmt.Sprintf("%s-hardware", n.Info.Name),
+			Receiver: "*",
+			Payload:  fmt.Sprintf("{\"timestamp\": %d }", inputEvent.Timestamp.Unix()),
+		}
+		n.handleEvent(event)
 	}
 
-	return n
+	rpi.SetEventHandler(hardwareEventHandler)
 
+	return n
 }

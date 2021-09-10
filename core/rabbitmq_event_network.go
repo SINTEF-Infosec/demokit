@@ -22,7 +22,9 @@ type ConnexionDetails struct {
 	Port     string
 }
 
-func NewRabbitMQEventNetwork(connDetails ConnexionDetails, mainLogger *log.Entry) *RabbitMQEventNetwork {
+func NewRabbitMQEventNetwork(connDetails ConnexionDetails) *RabbitMQEventNetwork {
+	logger := log.WithField("node", "na-event-network-setup")
+
 	conn, err := amqp.Dial(fmt.Sprintf("amqp://%s:%s@%s:%s/",
 		connDetails.Username,
 		connDetails.Password,
@@ -30,12 +32,12 @@ func NewRabbitMQEventNetwork(connDetails ConnexionDetails, mainLogger *log.Entry
 		connDetails.Port,
 	))
 	if err != nil {
-		mainLogger.Fatalf("failed to connect to RabbitMQ: %v", err)
+		logger.Fatalf("failed to connect to RabbitMQ: %v", err)
 	}
 
 	ch, err := conn.Channel()
 	if err != nil {
-		mainLogger.Fatalf("failed to open a Channel: %v", err)
+		logger.Fatalf("failed to open a Channel: %v", err)
 	}
 
 	// setting up the different exchange
@@ -49,12 +51,12 @@ func NewRabbitMQEventNetwork(connDetails ConnexionDetails, mainLogger *log.Entry
 		nil)
 
 	if err != nil {
-		mainLogger.Fatalf("could not declare the events exchange: %v", err)
+		logger.Fatalf("could not declare the events exchange: %v", err)
 	}
 
 	return &RabbitMQEventNetwork{
 		rabbitMqChannel: ch,
-		logger:          mainLogger.WithField("component", "event-network"),
+		logger:          logger.WithField("component", "event-network"),
 	}
 }
 
@@ -142,4 +144,8 @@ func (r *RabbitMQEventNetwork) StartListeningForEvents() {
 	}()
 
 	r.logger.Info("Listening for events...")
+}
+
+func (r *RabbitMQEventNetwork) SetLogger(logger *log.Entry) {
+	r.logger = logger
 }

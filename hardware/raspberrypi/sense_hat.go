@@ -111,6 +111,46 @@ type PixelColor struct {
 	B uint8
 }
 
+func Red() PixelColor {
+	return PixelColor{255, 0, 0}
+}
+
+func Orange() PixelColor {
+	return PixelColor{255, 128, 0}
+}
+
+func Yellow() PixelColor {
+	return PixelColor{255, 255, 0}
+}
+
+func Green() PixelColor {
+	return PixelColor{0, 255, 0}
+}
+
+func Cyan() PixelColor {
+	return PixelColor{0, 255, 255}
+}
+
+func Blue() PixelColor {
+	return PixelColor{0, 0, 255}
+}
+
+func Purple() PixelColor {
+	return PixelColor{255, 0, 255}
+}
+
+func Pink() PixelColor {
+	return PixelColor{255, 128, 128}
+}
+
+func White() PixelColor {
+	return PixelColor{255, 255, 255}
+}
+
+func Blank() PixelColor {
+	return PixelColor{0, 0, 0}
+}
+
 // SetRotation calls set_rotation which corrects the orientation of the image being shown.
 func (s *SenseHat) SetRotation(r Rotation, redraw bool) error {
 	function := s.senseHatObject.GetAttrString(SetRotation)

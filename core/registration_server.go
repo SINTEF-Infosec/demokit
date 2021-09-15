@@ -12,9 +12,9 @@ type RegistrationServer struct {
 	Addr string
 }
 
-func NewDefaultRegistrationServer() *RegistrationServer {
+func NewDefaultRegistrationServer(addr string) *RegistrationServer {
 	return &RegistrationServer{
-		Addr: "192.168.0.103:4000",
+		Addr: addr,
 	}
 }
 

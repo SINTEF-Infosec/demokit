@@ -22,10 +22,11 @@ func NewDefaultNodeWithVideo() *Node {
 	info := NodeInfo{} // Will default to a NODE_NAME or to a random name
 	logger := log.NewEntry(log.New())
 
+	defaultHost := getFromEnvOrFail("RABBIT_MQ_HOST", info.Name)
 	rabbitMQEventNetwork := NewRabbitMQEventNetwork(ConnexionDetails{
 		Username: getFromEnvOrFail("RABBIT_MQ_USERNAME", info.Name),
 		Password: getFromEnvOrFail("RABBIT_MQ_PASSWORD", info.Name),
-		Host:     getFromEnvOrFail("RABBIT_MQ_HOST", info.Name),
+		Host:     defaultHost,
 		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
 	})
 
@@ -33,7 +34,9 @@ func NewDefaultNodeWithVideo() *Node {
 	if err != nil {
 		log.Fatalf("could not create media controller: %v", err)
 	}
-	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, mediaController, nil)
+
+	rs := NewDefaultRegistrationServer(fmt.Sprintf("%s:4000", defaultHost))
+	n := NewNode(info, DefaultNodeConfig(), logger, rs, rabbitMQEventNetwork, mediaController, nil)
 
 	if n.MediaController != nil {
 		// By default, we emit "internal" event when there is a media event

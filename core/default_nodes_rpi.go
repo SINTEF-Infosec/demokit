@@ -9,7 +9,9 @@ import (
 
 // NewDefaultRaspberryPiNode returns a Node with a default configuration for a RaspberryPi Node.
 // In addition to the mandatory components of a Node, the Hardware Layer is available.
-func NewDefaultRaspberryPiNode() *Node {
+// listenForJoystickEvents controls whether or not to start the listening routine
+// (see raspberrypi.SenseHat::StartListeningForJoystickEvents for details on the issue with that)
+func NewDefaultRaspberryPiNode(listenForJoystickEvents bool) *Node {
 	info := NodeInfo{} // Will default to a NODE_NAME or to a random name
 	logger := log.NewEntry(log.New())
 
@@ -20,7 +22,7 @@ func NewDefaultRaspberryPiNode() *Node {
 		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
 	})
 
-	rpi := raspberrypi.NewRaspberryPiWithSenseHat()
+	rpi := raspberrypi.NewRaspberryPiWithSenseHat(listenForJoystickEvents, logger)
 
 	n := NewNode(info, DefaultNodeConfig(), logger, NewDefaultRegistrationServer(), rabbitMQEventNetwork, nil, rpi)
 

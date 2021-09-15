@@ -574,6 +574,8 @@ type InputEventHandler func(inputEvent InputEvent)
 
 // StartListeningForJoystickEvents listens for joystick input events and pass them to the provided InputEventHandler
 // If blocking is true, the call to the handler will block, otherwise, it will be done asynchronously.
+// BUG(guillaumebour) It is not possible to listen for joysticks events and use other functionalities of the hat
+// at the same time, this crashes.
 func (s *SenseHat) StartListeningForJoystickEvents(handler InputEventHandler, blocking bool) context.CancelFunc {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {

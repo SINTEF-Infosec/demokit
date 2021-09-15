@@ -11,9 +11,10 @@ type SenseHatRaspberry struct {
 	logger *log.Entry
 	*SenseHat
 	eventHandler func(interface{})
+	listenForJoysticksEvents bool
 }
 
-func NewRaspberryPiWithSenseHat() *SenseHatRaspberry {
+func NewRaspberryPiWithSenseHat(listenForJoystickEvents bool, logger *log.Entry) *SenseHatRaspberry {
 	senseHat, err := NewSenseHat()
 	if err != nil {
 		log.Fatalf("Could not instantiate new sense hat: %v", err)
@@ -21,14 +22,18 @@ func NewRaspberryPiWithSenseHat() *SenseHatRaspberry {
 	return &SenseHatRaspberry{
 		SenseHat: senseHat,
 		eventHandler: func(_ interface{}) {},
+		listenForJoysticksEvents: listenForJoystickEvents,
+		logger: logger,
 	}
 }
 
 func (r *SenseHatRaspberry) Init() {
-	r.SenseHat.StartListeningForJoystickEvents(func(event InputEvent) {
-		r.eventHandler(event)
-	}, false)
-	r.logger.Info("Listening for joystick events")
+	if r.listenForJoysticksEvents {
+		r.SenseHat.StartListeningForJoystickEvents(func(event InputEvent) {
+			r.eventHandler(event)
+		}, false)
+		r.logger.Info("Listening for joystick events")
+	}
 }
 
 func (r *SenseHatRaspberry) SetLogger(logger *log.Entry) {

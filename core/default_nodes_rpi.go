@@ -1,3 +1,5 @@
+// +build hardware
+
 package core
 
 import (

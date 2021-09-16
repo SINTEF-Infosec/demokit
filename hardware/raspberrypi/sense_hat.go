@@ -283,7 +283,7 @@ func (s *SenseHat) LoadImage(path string, redraw bool) error {
 			function.Call(args, nil)
 			return nil
 		}
-		return  fmt.Errorf("function %s is not callable", LoadImage)
+		return fmt.Errorf("function %s is not callable", LoadImage)
 	}
 	return fmt.Errorf("could not get %s function", LoadImage)
 }
@@ -301,7 +301,7 @@ func (s *SenseHat) Clear(color PixelColor) error {
 			function.Call(args, nil)
 			return nil
 		}
-		return  fmt.Errorf("function %s is not callable", Clear)
+		return fmt.Errorf("function %s is not callable", Clear)
 	}
 	return fmt.Errorf("could not get %s function", Clear)
 }
@@ -329,7 +329,7 @@ func (s *SenseHat) ShowMessage(textString string, scrollSpeed float64, textColor
 			function.Call(args, nil)
 			return nil
 		}
-		return  fmt.Errorf("function %s is not callable", ShowMessage)
+		return fmt.Errorf("function %s is not callable", ShowMessage)
 	}
 	return fmt.Errorf("could not get %s function", ShowMessage)
 }
@@ -352,7 +352,7 @@ func (s *SenseHat) ShowLetter(letter string, textColor PixelColor, backColor Pix
 			function.Call(args, nil)
 			return nil
 		}
-		return  fmt.Errorf("function %s is not callable", ShowLetter)
+		return fmt.Errorf("function %s is not callable", ShowLetter)
 	}
 	return fmt.Errorf("could not get %s function", ShowLetter)
 }

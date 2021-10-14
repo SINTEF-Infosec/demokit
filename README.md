@@ -62,3 +62,5 @@ More examples are available [here](https://github.com/SINTEF-Infosec/demokit-exa
 
 ## Contributing
 
+See [CONTRIBUTING](https://github.com/SINTEF-Infosec/demokit/blob/main/CONTRIBUTING.md).
+

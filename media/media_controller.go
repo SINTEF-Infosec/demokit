@@ -19,4 +19,7 @@ type MediaController interface {
 	SetOnMediaStartedCallback(cb MediaEventCallback)
 	SetOnMediaPausedCallback(cb MediaEventCallback)
 	SetOnMediaEndedCallback(cb MediaEventCallback)
+
+	GetCurrentMediaPosition() (float32, error)
+	SetCurrentMediaPosition(float32) error
 }

@@ -48,3 +48,11 @@ func (v VirtualMediaController) SetOnMediaStartedCallback(cb MediaEventCallback)
 func (v VirtualMediaController) SetOnMediaPausedCallback(cb MediaEventCallback) {}
 
 func (v VirtualMediaController) SetOnMediaEndedCallback(cb MediaEventCallback) {}
+
+func (v VirtualMediaController) GetCurrentMediaPosition() (float32, error) {
+	return 0.0, fmt.Errorf(UnavailableController)
+}
+
+func (v VirtualMediaController) SetCurrentMediaPosition(float32) error {
+	return fmt.Errorf(UnavailableController)
+}

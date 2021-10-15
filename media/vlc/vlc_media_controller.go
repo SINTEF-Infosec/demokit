@@ -156,6 +156,28 @@ func (mc *VLCMediaController) SetOnMediaEndedCallback(cb media.MediaEventCallbac
 	mc.onMediaEndedCallback = cb
 }
 
+func (mc *VLCMediaController) GetCurrentMediaPosition() (float32, error) {
+	if mc.isMediaAvailable() {
+		mediaPosition, err := mc.player.MediaPosition()
+		if err != nil {
+			return 0.0, fmt.Errorf("could not get media position: %v", err)
+		}
+		return mediaPosition, nil
+	}
+	return 0, fmt.Errorf("media unvailable")
+}
+
+func (mc *VLCMediaController) SetCurrentMediaPosition(position float32) error {
+	if mc.isMediaAvailable() {
+		err := mc.player.SetMediaPosition(position)
+		if err != nil {
+			return fmt.Errorf("could not set media position: %v", err)
+		}
+		return nil
+	}
+	return fmt.Errorf("media unvailable")
+}
+
 func (mc *VLCMediaController) isMediaAvailable() bool {
 	if mc.player != nil {
 		currentMedia, err := mc.player.Media()

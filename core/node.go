@@ -41,6 +41,7 @@ type NodeStatus struct {
 	IsReady           bool                `json:"is_ready"`
 	Capabilities      NodeCapabilities    `json:"capabilities"`
 	RegisteredActions map[string][]string `json:"registered_actions"`
+	RegisteredUIs     []string            `json:"registered_ui"`
 }
 
 type NodeConfig struct {
@@ -55,6 +56,7 @@ type Node struct {
 	State              internalState
 	Logger             *log.Entry
 	actions            map[string]*Action
+	registeredUIs      []string
 	entryPoint         *Action
 	RegistrationServer *RegistrationServer
 	EventNetwork       EventNetwork
@@ -79,6 +81,7 @@ func NewNode(info NodeInfo,
 		},
 		Logger:             logger,
 		actions:            map[string]*Action{},
+		registeredUIs:      make([]string, 0),
 		RegistrationServer: rs,
 		EventNetwork:       network,
 		Router:             nil,
@@ -276,6 +279,17 @@ func (n *Node) SendEventTo(receiver string, eventName, payload string) {
 	n.EventNetwork.SendEventTo(receiver, event)
 }
 
+func (n *Node) RegisterUI(endpoint string) {
+	for _, ui := range n.registeredUIs {
+		if endpoint == ui {
+			n.Logger.Warnf("the endpoint %s was already registered, ignoring", endpoint)
+			return
+		}
+	}
+	n.registeredUIs = append(n.registeredUIs, endpoint)
+	n.Logger.Infof("UI registered: %s", endpoint)
+}
+
 func (n *Node) ServeStatus() {
 	n.Router.GET("/status", func(c *gin.Context) {
 		var actions map[string][]string
@@ -289,6 +303,7 @@ func (n *Node) ServeStatus() {
 				MediaAvailable:    n.MediaController.IsAvailable(),
 			},
 			RegisteredActions: actions,
+			RegisteredUIs:     n.registeredUIs,
 		}
 		c.JSON(http.StatusOK, ns)
 	})

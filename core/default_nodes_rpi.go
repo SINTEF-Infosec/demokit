@@ -14,10 +14,11 @@ import (
 // listenForJoystickEvents controls whether or not to start the listening routine
 // (see raspberrypi.SenseHat::StartListeningForJoystickEvents for details on the issue with that)
 func NewDefaultRaspberryPiNode(listenForJoystickEvents bool) *Node {
-	info := NodeInfo{} // Will default to a NODE_NAME or to a random name
+	info := NodeInfo{} // Will default to NODE_NAME or to a random name
 	logger := log.NewEntry(log.New())
 
 	defaultHost := getFromEnvOrFail("RABBIT_MQ_HOST", info.Name)
+	registrationServer := getFromEnvOrFail("REGISTRATION_SERVER", info.Name)
 
 	rabbitMQEventNetwork := NewRabbitMQEventNetwork(ConnexionDetails{
 		Username: getFromEnvOrFail("RABBIT_MQ_USERNAME", info.Name),
@@ -26,7 +27,7 @@ func NewDefaultRaspberryPiNode(listenForJoystickEvents bool) *Node {
 		Port:     getFromEnvOrFail("RABBIT_MQ_PORT", info.Name),
 	})
 
-	rs := NewDefaultRegistrationServer(fmt.Sprintf("%s:4000", defaultHost))
+	rs := NewDefaultRegistrationServer(fmt.Sprintf("%s:4000", registrationServer))
 	rpi := raspberrypi.NewRaspberryPiWithSenseHat(listenForJoystickEvents, logger)
 
 	n := NewNode(info, DefaultNodeConfig(), logger, rs, rabbitMQEventNetwork, nil, rpi)
